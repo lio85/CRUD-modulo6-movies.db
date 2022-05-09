@@ -1,0 +1,10 @@
+<%-include('header')-%>  
+    <h1>Listado de pelis</h1>
+    <ul>
+        <%for(pelicula of peliculas){%>
+            <a href="/peliculas/<%=pelicula.id%>">
+                <li><%=pelicula.title%></li>
+            </a>
+        <%}%>  
+    </ul>
+<%-include('footer')-%> 

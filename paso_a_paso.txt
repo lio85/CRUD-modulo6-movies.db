@@ -1,0 +1,248 @@
+CRUD Base de datos - Video final clase 33
+
+practicaremos lo que llamamos CRUD, es decir, dar a nuestro sistema las 4 operaciones clasicas de la base de datos
+
+Create
+Read
+Update
+Delete
+
+1. 
+Generamos un nuevo proyecto con express-generator (CRUD_CompletoModulo6, donde indicamos que vamos a trabajar con el motor de plantillas EJS)
+
+express CRUD_CompletoModulo6 --ejs
+
+2. 
+npm install (para instalar los paquetes que ya nos trae express-generator)
+
+3. 
+explicarle a nuestro sistema en express como esta armada nuestra base de datos
+para esto vamos a intalar algunos paquetes adicionales
+
+*** el profesor usa el comando (npm install -g --save sequelize sequelize-cli) para instalar los paquetes sequelize y sequelize-cli, pero de esa manera, aparentemente, yo no podia instalarlos (no los visualizaba en "dependencies" de package.json ni entre los modulos de node_modules), por lo que resolvi con los dos siguientes comandos:
+
+3.1. npm install sequelize --save
+3.2. npm install sequelize-cli --save
+
+4.
+instalar el paquete que le va a explicar a nuestro sistema que nos vamos a relacionar con una db de tipo MySQL
+
+npm install --save mysql2
+
+5. 
+debemos explicarle (al sistema) algunas configuraciones de como queremos armar nuestro sistema de base de datos
+esto lo hacemos en un archivo que llamaremos .sequelizerc, en el que incluiremos la siguiente configuracion:
+
+const path = require('path')
+
+module.exports = {
+  config: path.resolve('./database/config', 'config.js'),
+  'models-path': path.resolve('./database/models'),
+  'seeders-path': path.resolve('./database/seeders'),
+  'migrations-path': path.resolve('./database/migrations'),
+}
+
+6.
+corremos el comando sequelize init, el cual debe crear la configuracion que se expresa en el paso anterior, dentro de la carpeta database, dentro de la carpetta raiz, es decir:
+
+./database/config/config.js
+./database/migratons/
+./database/models/index.js
+./database/seeders/
+
+*** en mi caso, no se creo la carpeta database, asi que lo hice manualmente, e inclui las otras cuatro carpetas adentro.
+*** a su vez, el archivo 'config' lo creo como .json, asi que tuve que convertirlo manualmente a .js
+
+7.
+./database/config/config.js
+
+7.1. 
+agrego module.exports= a principio del objeto
+
+como vemos, se trata de un objeto de objetos en formato JSON, asi: 
+
+module.exports= {
+    "development": {"aaa":"aaa"},
+    "test": {"aaa":"aaa"},
+    "production": {"aaa":"aaa"},
+}
+
+7.2. 
+como en este momento, nos encontramos en el ambiente de desarrollo ("development") es en esta parte donde vamos a realizar la configuracion de nuestra conexion local (?) para poder acceder a la 
+db deseada, en este caso, movies_db
+
+"development": {
+    "username": "root",
+    "password": null,
+    "database": "movies_db",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+  }
+
+***
+    "username" -> nombre de la conexion local (?)
+    "password": -> password de la conexion local (?)
+    "database": -> nombre de la db
+    "host": -> direccion ip por defecto de windows
+    "dialect": -> de tipo mysql
+
+8.
+ahora le explicamos a sequelize como es la forma de nuestra base de datos
+
+eso lo haremos desde models, representando de la forma que veremos a continuacion las tablas de la db movies_db
+
+en ./database/models modelaremos las entidades Actor, Genero y Pelicula (recordemos que son la representacion en nuestro back-end de las tablas actors, genres y movies de la bd movies_db, respectivamente)
+
+8.1.
+recordemos que lo que hacen los modelos es exportar una funcion, que recibe dos parametros: 
+* sequelize, que es el parametro que utilizaremos pra crear los distintos modelos 
+* dataTypes, que hace referencia al tipo de datos que tendremos en cada una de las columnas de las tablas de la base de datos
+entonces, en los modelos (Actor, Genero, Pelicula)
+vvvvvvvv
+    
+module.exports= function(sequelize, dataTypes){
+    let Genero = sequelize.define (alias, cols, config){
+    }
+}
+
+* alias -> sera el nombre con el que sequelize identificara a la tabla que estamos modelando, podemos pensarlo como un 'apodo'
+* cols -> 
+  ** seran las columnas de nuestra entidad (representacion de una tabla de nuestra db, en nuestro back-end)
+  ** cols va ser un objeto literal, donde cada atributo correspondera a cada campo de la tabla que queramos referenciar
+  ** no es obligatorio incluir todas las columnas existentes en la tabla de la db 
+  ** las columnas que detallemos en cols son las que sequelize va a leer de la db y permitirnos crear, editar o borrar
+  ** las columnas que no detallemos en cols, sequelize no podra leerlas ni escribirlas
+  ** el valor de cada atributo sera un objeto literal, en el que como minimo, exisitira una propiedad correspondiente al tipo de dato (aqui referenciamos al segundo parametro que recibe la funcion en el paso 8.1. y que exportamos, es decir, dataTypes)
+  ** en conclusion, con la configuracion de cols modelamos la forma que tendra una entidad determinada para sequelize 
+* config -> es un objeto literal en el que en general ponemos al menos dos cosas
+  ** tablename: 'nombre_original_de_la_tabla_en_la_db'
+  ** timestamps: true o false -> si tiene o no timestamps (created_at - fecha de creacion del registro / updated_at - fecha de edicion del registro)
+    ** los timestamps pueden existir en la tabla original y podemos ponerle false en el modelo, de esta forma sequelize no los leera
+
+8.2.
+definimos alias, cols y config
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+
+module.exports= function(sequelize, dataTypes){
+    let alias = 'Genero';
+    let cols = {
+        id: {
+            type: dataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true
+        },
+        name: {
+            type: dataTypes.STRING
+        }
+    };
+    let config= {
+        tableName: 'genres',
+        timestamps: false
+    };
+    let Genero = sequelize.define (alias, cols, config);
+    retutn Genero;
+}
+
+* esta configuracion la aplicaremos en los 3 modelos (Actor, Genero y Pelicula), con las variantes que correspondan en cada caso
+* Luego, ya tendremos el modelo armado
+
+9.
+ahora hay que explicarle a sequelize como se cruzan estas tablas (es decir, como se relacionan, o como se asocian)
+
+esto se hace entre el sequelize.define y el return
+
+let Genero = sequelize.define (alias, cols, config);
+ // aqui definiremos las relaciones
+retutn Genero;
+
+9.1. 
+tomamos la variable en la que almacenamos la creacion del modelo (en este caso Genero) y usamos el metodo de sequelize associate para explicarle a sequelize las distintas asociaciones que pueda tener una entidad
+las asociaciones (Genero.associate=) van a ser una funcion que va a recibir un solo parametro que representa a todos los modelos
+
+sequelize tiene al menos 3 metodos para describir el tipo de asociacion entre entidades (relaciones):
+* belongsTo -> 'pertenece a' -> uno a muchos -> 1:N
+* hasMany -> 'tiene muchos' -> muchos a uno -> N:1
+* belongsToMany -> 'pertenece a muchos' -> muchos a muchos -> M:name
+
+luego entonces, haremos uso del metodo de asociacion que corresponda a la relacion entre las dos tablas que queremos definir para continuar la configuracion
+desde generos (alias de Genero), vamos a definir la relacion entre esta entidad y peliculas (alias de Pelicula)
+
+entonces, posicionados en generos:
+
+ejemplo de asociacion de uno a muchos (hasMany)
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+let Genero = sequelize.define (alias, cols, config);
+
+Genero.associate= function(models){
+    Genero.hasMany(models.Pelicula, {
+        as: 'peliculas',
+        foreignKey: 'genre_id'
+    })
+}
+return Genero;
+
+* linea1: Genero.associate= function(models){ -> indicamos que vamos a definir una asociacion entre generos y alguna otra entidad (el resto de las entidades las podemos acceder desde el parametro models)
+* linea2: Genero.hasMany(models.Pelicula, { -> aca definimos que la relacion es entre Genero y Pelicula, y como sabemos que va a ser una relacion de uno a muchos (un genero puede tener muchas peliculas), utilizamos el metodo de asociacion correspondiente, es decir, hasMany
+* linea3: as: 'peliculas' -> nombre que definimos para invocar la relacion
+* linea4: foreignKey: 'genre_id' -> nombre de la clave foranea, en la entidad de los muchos (Pelicula), que representa la relacion entre ambas tablas
+
+luego, debemos configurar la asociacion del lado de la otra entidad (en este caso Pelicula), con las variantes que correspondan
+
+orden de asociaciones (revisar codigo)
+a. Genero - Pelicula
+b. Actor - Pelicula
+c. Pelicula - Genero
+d. Pelicula - Actor
+
+ejemplo de asociacion de muchos a muchos (belongsToMany)
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+Actor.associate= function(models){
+    Actor.belongsToMany(models.Pelicula, {
+        as: 'peliculas',
+        through: 'actor_movie',
+        foreignKey: 'actor_id',
+        otherKey: 'movie_id',
+        timestamps: false 
+    })
+}
+
+* as: -> alias de la relacion (desde el lado de Actor)
+* through: -> nombre de tabla pivot en la db
+* foreignKey: -> campo que representa a la tabla en donde estamos parados, en la tabla pivot (en este caso Actor)
+* otherKey: -> campo que representa a la otra tabla de la relacion, en la tabla pivot (en este caso Pelicula)
+* timestamps: false -> le indicamos a sequelize que desestime los timestamps, si los hubiera (?)
+
+ejemplo de asociacion de muchos a uno (belongsTo)
+vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+Pelicula.belongsTo(models.Genero, {
+            as: 'genero',
+            foreignKey: 'genre_id'
+        }),
+
+as: -> nombre que definimos para invocar la relacion
+foreignKey: -> nombre de la clave foranea, en la entidad de los muchos (Pelicula), que representa la relacion entre ambas tablas
+
+en conclusion, le explicamos a sequelize las asociaciones entre las tablas de nuestro sistema:
+
+a. Genero 1-------------N Pelicula (hasMany)
+b. Actor M-----------N Pelicula (belongsToMany)
+c. Pelicula N-------1 Genero (belongsTo)
+d. Pelicula M----------N Actor (belongsToMany)
+
+-------------------------------------------------------
+
+siempre una pagina tiene 3 partes: RUTA - CONTROLADOR - VISTA
+
+ahora vamos a trabajar en las 5 paginas que queremos generator
+
+1. creacion de una pelicula
+2. actualizacion de una pelicula
+3. borrado de una pelicula
+4. listado de todas las pelicula
+5. detalle de una pelicula
+
+
